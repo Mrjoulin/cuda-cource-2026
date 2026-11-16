@@ -14,7 +14,7 @@ namespace lab1 {
 
 namespace {
 
-std::string trim(const std::string& s) {
+std::string trim(const std::string &s) {
     size_t first = s.find_first_not_of(" \t\r\n");
     if (first == std::string::npos) {
         return "";
@@ -23,7 +23,7 @@ std::string trim(const std::string& s) {
     return s.substr(first, last - first + 1);
 }
 
-AccessMode parseMode(const std::string& s) {
+AccessMode parseMode(const std::string &s) {
     if (s == "coalesced") {
         return AccessMode::Coalesced;
     }
@@ -34,11 +34,10 @@ AccessMode parseMode(const std::string& s) {
     std::exit(EXIT_FAILURE);
 }
 
-}  // namespace
+} // namespace
 
-void printUsage(const char* program) {
-    std::cout << "Usage: " << program
-              << " --input <config.txt> --output <dir> [--mode <mode>]\n"
+void printUsage(const char *program) {
+    std::cout << "Usage: " << program << " --input <config.txt> --output <dir> [--mode <mode>]\n"
               << "\n"
               << "Required:\n"
               << "  --input <path>   Text file with key=value settings\n"
@@ -55,7 +54,7 @@ void printUsage(const char* program) {
               << "  repeats=<int>    Repetitions after warmup\n";
 }
 
-Config parseArgs(int argc, char** argv) {
+Config parseArgs(int argc, char **argv) {
     Config cfg;
     bool hasInput = false;
     bool hasOutput = false;
@@ -111,7 +110,7 @@ Config parseArgs(int argc, char** argv) {
     return cfg;
 }
 
-void readConfigFile(const std::string& path, Config& cfg) {
+void readConfigFile(const std::string &path, Config &cfg) {
     std::ifstream file(path);
     if (!file) {
         std::cerr << "Cannot open input config: " << path << "\n";
@@ -131,8 +130,7 @@ void readConfigFile(const std::string& path, Config& cfg) {
 
         size_t eq = line.find('=');
         if (eq == std::string::npos) {
-            std::cerr << "Invalid config line " << lineno << ": " << line
-                      << "\n";
+            std::cerr << "Invalid config line " << lineno << ": " << line << "\n";
             std::exit(EXIT_FAILURE);
         }
 
@@ -154,9 +152,9 @@ void readConfigFile(const std::string& path, Config& cfg) {
                 std::cerr << "Unknown config key: " << key << "\n";
                 std::exit(EXIT_FAILURE);
             }
-        } catch (const std::exception& e) {
-            std::cerr << "Bad value for " << key << " at line " << lineno
-                      << ": " << e.what() << "\n";
+        } catch (const std::exception &e) {
+            std::cerr << "Bad value for " << key << " at line " << lineno << ": " << e.what()
+                      << "\n";
             std::exit(EXIT_FAILURE);
         }
     }
@@ -166,4 +164,4 @@ void readConfigFile(const std::string& path, Config& cfg) {
     }
 }
 
-}  // namespace lab1
+} // namespace lab1

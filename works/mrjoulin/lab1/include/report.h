@@ -41,21 +41,16 @@ struct BenchmarkResult {
 };
 
 /** Print the validation table to the given stream. */
-void printValidationTable(
-    std::ostream& os, const std::vector<ValidationResult>& results);
+void printValidationTable(std::ostream &os, const std::vector<ValidationResult> &results);
 
 /** Print the benchmark timing table to the given stream. */
-void printBenchmarkTable(
-    std::ostream& os,
-    const std::vector<BenchmarkResult>& results,
-    AccessMode mode);
+void printBenchmarkTable(std::ostream &os, const std::vector<BenchmarkResult> &results,
+                         AccessMode mode);
 
 /** Write the full report to the configured output directory. */
-void writeReport(
-    const Config& cfg,
-    const std::vector<ValidationResult>& validation,
-    const std::vector<BenchmarkResult>& benchmarks);
+void writeReport(const Config &cfg, const std::vector<ValidationResult> &validation,
+                 const std::vector<BenchmarkResult> &benchmarks);
 
-}  // namespace lab1
+} // namespace lab1
 
-#endif  // LAB1_REPORT_H
+#endif // LAB1_REPORT_H
