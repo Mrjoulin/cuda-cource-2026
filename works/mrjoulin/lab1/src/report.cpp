@@ -20,52 +20,44 @@ std::string modeString(AccessMode mode) {
     return mode == AccessMode::Coalesced ? "coalesced" : "noncoalesced";
 }
 
-}  // namespace
+} // namespace
 
-void printValidationTable(
-    std::ostream& os, const std::vector<ValidationResult>& results) {
+void printValidationTable(std::ostream &os, const std::vector<ValidationResult> &results) {
     os << "\n### Validation (small sizes)\n\n";
     os << "| Operation | Size | Max abs error | Mismatches (>1e-5) |\n";
     os << "|-----------|------|---------------|--------------------|\n";
 
-    for (const auto& r : results) {
-        os << "| " << std::setw(9) << std::left << r.opName << " | "
-           << std::setw(4) << r.n << " | " << std::scientific
-           << std::setprecision(2) << r.maxErr << " | " << r.mismatches
+    for (const auto &r : results) {
+        os << "| " << std::setw(9) << std::left << r.opName << " | " << std::setw(4) << r.n << " | "
+           << std::scientific << std::setprecision(2) << r.maxErr << " | " << r.mismatches
            << " |\n";
     }
 
     os << std::defaultfloat << std::setprecision(6);
 }
 
-void printBenchmarkTable(
-    std::ostream& os,
-    const std::vector<BenchmarkResult>& results,
-    AccessMode mode) {
+void printBenchmarkTable(std::ostream &os, const std::vector<BenchmarkResult> &results,
+                         AccessMode mode) {
     os << "\n### Benchmark: " << modeString(mode) << " access\n\n";
     os << "| Operation | Block | H2D, ms | Kernel, ms | D2H, ms | Full cycle, "
           "ms | Alloc, ms |\n";
     os << "|-----------|-------|---------|------------|---------|-------------"
           "--|-----------|\n";
 
-    for (const auto& r : results) {
-        os << "| " << std::setw(9) << std::left << r.opName << " | "
-           << std::setw(5) << r.blockSize << " | " << std::fixed
-           << std::setprecision(3) << r.median.h2dMs << " | "
-           << r.median.kernelMs << " | " << r.median.d2hMs << " | "
-           << r.median.fullMs << " | " << r.allocMs << " |\n";
+    for (const auto &r : results) {
+        os << "| " << std::setw(9) << std::left << r.opName << " | " << std::setw(5) << r.blockSize
+           << " | " << std::fixed << std::setprecision(3) << r.median.h2dMs << " | "
+           << r.median.kernelMs << " | " << r.median.d2hMs << " | " << r.median.fullMs << " | "
+           << r.allocMs << " |\n";
     }
 
     os << std::defaultfloat << std::setprecision(6);
 }
 
-void writeReport(
-    const Config& cfg,
-    const std::vector<ValidationResult>& validation,
-    const std::vector<BenchmarkResult>& benchmarks) {
+void writeReport(const Config &cfg, const std::vector<ValidationResult> &validation,
+                 const std::vector<BenchmarkResult> &benchmarks) {
     if (std::system(("mkdir -p '" + cfg.outputPath + "'").c_str()) != 0) {
-        std::cerr << "Failed to create output directory: " << cfg.outputPath
-                  << "\n";
+        std::cerr << "Failed to create output directory: " << cfg.outputPath << "\n";
         std::exit(EXIT_FAILURE);
     }
 
@@ -95,4 +87,4 @@ void writeReport(
     std::cout << echo.rdbuf();
 }
 
-}  // namespace lab1
+} // namespace lab1

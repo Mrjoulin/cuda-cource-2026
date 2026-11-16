@@ -15,7 +15,7 @@
 #ifdef __CUDACC__
 #include <cuda_runtime.h>
 #else
-using cudaStream_t = void*;
+using cudaStream_t = void *;
 #endif
 
 namespace lab1 {
@@ -29,17 +29,16 @@ enum class Op {
 
 /** Global-memory access pattern. */
 enum class AccessMode {
-    Coalesced,    /**< Stride-1 contiguous access within a warp. */
-    Noncoalesced  /**< Chunked access, threads scatter across memory. */
+    Coalesced,   /**< Stride-1 contiguous access within a warp. */
+    Noncoalesced /**< Chunked access, threads scatter across memory. */
 };
 
 /**
  * @brief Launch one of the vector kernels.
  */
-void launchVectorOp(
-    Op op, AccessMode mode, const float* d_a, const float* d_b, float* d_c,
-    float alpha, std::size_t n, int blockSize, cudaStream_t stream = 0);
+void launchVectorOp(Op op, AccessMode mode, const float *d_a, const float *d_b, float *d_c,
+                    float alpha, std::size_t n, int blockSize, cudaStream_t stream = 0);
 
-}  // namespace lab1
+} // namespace lab1
 
-#endif  // LAB1_KERNELS_H
+#endif // LAB1_KERNELS_H

@@ -30,66 +30,64 @@ constexpr int kWarmupIterations = 2;
 constexpr int kDefaultValidationBlockSize = 256;
 constexpr float kTolerance = 1e-5f;
 
-}  // namespace
+} // namespace
 
 // ---------------------------------------------------------------------------
 // Error checking helpers
 // ---------------------------------------------------------------------------
 
-#define CUDA_CHECK(call)                                                       \
-    do {                                                                       \
-        cudaError_t err = (call);                                              \
-        if (err != cudaSuccess) {                                              \
-            std::fprintf(stderr, "CUDA error in %s at %s:%d: %s\n", #call,     \
-                         __FILE__, __LINE__, cudaGetErrorString(err));        \
-            std::exit(EXIT_FAILURE);                                           \
-        }                                                                      \
+#define CUDA_CHECK(call)                                                                           \
+    do {                                                                                           \
+        cudaError_t err = (call);                                                                  \
+        if (err != cudaSuccess) {                                                                  \
+            std::fprintf(stderr, "CUDA error in %s at %s:%d: %s\n", #call, __FILE__, __LINE__,     \
+                         cudaGetErrorString(err));                                                 \
+            std::exit(EXIT_FAILURE);                                                               \
+        }                                                                                          \
     } while (0)
 
-#define CUDA_CHECK_KERNEL()                                                    \
-    do {                                                                       \
-        cudaError_t err = cudaGetLastError();                                  \
-        if (err != cudaSuccess) {                                              \
-            std::fprintf(stderr, "Kernel launch error at %s:%d: %s\n",         \
-                         __FILE__, __LINE__, cudaGetErrorString(err));        \
-            std::exit(EXIT_FAILURE);                                           \
-        }                                                                      \
+#define CUDA_CHECK_KERNEL()                                                                        \
+    do {                                                                                           \
+        cudaError_t err = cudaGetLastError();                                                      \
+        if (err != cudaSuccess) {                                                                  \
+            std::fprintf(stderr, "Kernel launch error at %s:%d: %s\n", __FILE__, __LINE__,         \
+                         cudaGetErrorString(err));                                                 \
+            std::exit(EXIT_FAILURE);                                                               \
+        }                                                                                          \
     } while (0)
 
 // ---------------------------------------------------------------------------
 // Host-side reference results
 // ---------------------------------------------------------------------------
 
-static void computeReference(
-    Op op, const std::vector<float>& a, const std::vector<float>& b,
-    std::vector<float>& out, float alpha) {
+static void computeReference(Op op, const std::vector<float> &a, const std::vector<float> &b,
+                             std::vector<float> &out, float alpha) {
     const std::size_t n = out.size();
 
     switch (op) {
-        case Op::Add:
-            for (std::size_t i = 0; i < n; ++i) {
-                out[i] = a[i] + b[i];
-            }
-            break;
+    case Op::Add:
+        for (std::size_t i = 0; i < n; ++i) {
+            out[i] = a[i] + b[i];
+        }
+        break;
 
-        case Op::Saxpy:
-            // SAXPY overwrites y; here b holds the original y.
-            for (std::size_t i = 0; i < n; ++i) {
-                out[i] = alpha * a[i] + b[i];
-            }
-            break;
+    case Op::Saxpy:
+        // SAXPY overwrites y; here b holds the original y.
+        for (std::size_t i = 0; i < n; ++i) {
+            out[i] = alpha * a[i] + b[i];
+        }
+        break;
 
-        case Op::Relu:
-            for (std::size_t i = 0; i < n; ++i) {
-                out[i] = (a[i] > 0.0f) ? a[i] : 0.0f;
-            }
-            break;
+    case Op::Relu:
+        for (std::size_t i = 0; i < n; ++i) {
+            out[i] = (a[i] > 0.0f) ? a[i] : 0.0f;
+        }
+        break;
     }
 }
 
-static void generateHostInputs(
-    std::size_t n, unsigned seed, std::vector<float>& x,
-    std::vector<float>& y) {
+static void generateHostInputs(std::size_t n, unsigned seed, std::vector<float> &x,
+                               std::vector<float> &y) {
     x.resize(n);
     y.resize(n);
 
@@ -102,9 +100,8 @@ static void generateHostInputs(
     }
 }
 
-static void compareWithReference(
-    const std::vector<float>& ref, const std::vector<float>& got,
-    float& maxErr, std::size_t& mismatches, float tol = kTolerance) {
+static void compareWithReference(const std::vector<float> &ref, const std::vector<float> &got,
+                                 float &maxErr, std::size_t &mismatches, float tol = kTolerance) {
     maxErr = 0.0f;
     mismatches = 0;
 
@@ -125,8 +122,8 @@ static void compareWithReference(
 // Validation on small sizes
 // ---------------------------------------------------------------------------
 
-static ValidationResult validateOp(
-    Op op, AccessMode mode, std::size_t n, float alpha, int blockSize) {
+static ValidationResult validateOp(Op op, AccessMode mode, std::size_t n, float alpha,
+                                   int blockSize) {
     std::vector<float> x, y;
     generateHostInputs(n, 2026u, x, y);
 
@@ -140,19 +137,16 @@ static ValidationResult validateOp(
     if (n > 0) {
         CUDA_CHECK(cudaMalloc(&d_a, n * sizeof(float)));
         CUDA_CHECK(cudaMalloc(&d_c, n * sizeof(float)));
-        CUDA_CHECK(cudaMemcpy(
-            d_a, x.data(), n * sizeof(float), cudaMemcpyHostToDevice));
+        CUDA_CHECK(cudaMemcpy(d_a, x.data(), n * sizeof(float), cudaMemcpyHostToDevice));
 
         if (op == Op::Add || op == Op::Saxpy) {
             CUDA_CHECK(cudaMalloc(&d_b, n * sizeof(float)));
-            CUDA_CHECK(cudaMemcpy(
-                d_b, y.data(), n * sizeof(float), cudaMemcpyHostToDevice));
+            CUDA_CHECK(cudaMemcpy(d_b, y.data(), n * sizeof(float), cudaMemcpyHostToDevice));
         }
 
         // For SAXPY the launcher treats d_c as y.
         if (op == Op::Saxpy) {
-            CUDA_CHECK(cudaMemcpy(
-                d_c, y.data(), n * sizeof(float), cudaMemcpyHostToDevice));
+            CUDA_CHECK(cudaMemcpy(d_c, y.data(), n * sizeof(float), cudaMemcpyHostToDevice));
         }
 
         int block = blockSize;
@@ -167,8 +161,7 @@ static ValidationResult validateOp(
         CUDA_CHECK_KERNEL();
         CUDA_CHECK(cudaDeviceSynchronize());
 
-        CUDA_CHECK(cudaMemcpy(
-            result.data(), d_c, n * sizeof(float), cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaMemcpy(result.data(), d_c, n * sizeof(float), cudaMemcpyDeviceToHost));
 
         CUDA_CHECK(cudaFree(d_a));
         CUDA_CHECK(cudaFree(d_c));
@@ -185,17 +178,14 @@ static ValidationResult validateOp(
     return res;
 }
 
-static std::vector<ValidationResult> runValidation(
-    AccessMode mode, float alpha) {
-    const std::vector<std::size_t> sizes = {
-        0, 1, 255, 256, 257, 1023, 1024, 1025};
+static std::vector<ValidationResult> runValidation(AccessMode mode, float alpha) {
+    const std::vector<std::size_t> sizes = {0, 1, 255, 256, 257, 1023, 1024, 1025};
 
     std::vector<ValidationResult> results;
 
     for (std::size_t n : sizes) {
         for (auto op : {Op::Add, Op::Saxpy, Op::Relu}) {
-            results.push_back(
-                validateOp(op, mode, n, alpha, kDefaultValidationBlockSize));
+            results.push_back(validateOp(op, mode, n, alpha, kDefaultValidationBlockSize));
         }
     }
 
@@ -206,20 +196,19 @@ static std::vector<ValidationResult> runValidation(
 // Benchmark on the configured large size
 // ---------------------------------------------------------------------------
 
-static float medianOf(std::vector<float>& values) {
+static float medianOf(std::vector<float> &values) {
     size_t middle = values.size() / 2;
     std::nth_element(values.begin(), values.begin() + middle, values.end());
     return values[middle];
 }
 
-static BenchmarkResult benchmarkOp(
-    Op op, AccessMode mode, const std::vector<float>& x,
-    const std::vector<float>& y, float alpha, int blockSize, int repeats) {
+static BenchmarkResult benchmarkOp(Op op, AccessMode mode, const std::vector<float> &x,
+                                   const std::vector<float> &y, float alpha, int blockSize,
+                                   int repeats) {
     const std::size_t n = x.size();
 
     BenchmarkResult result;
-    result.opName =
-        (op == Op::Add ? "add" : (op == Op::Saxpy ? "saxpy" : "relu"));
+    result.opName = (op == Op::Add ? "add" : (op == Op::Saxpy ? "saxpy" : "relu"));
     result.blockSize = blockSize;
 
     // Allocate device memory once and measure allocation time separately.
@@ -244,8 +233,7 @@ static BenchmarkResult benchmarkOp(
 
     std::vector<float> resultHost(n);
 
-    cudaEvent_t h2dStart, h2dStop, kernelStart, kernelStop, d2hStart, d2hStop,
-        fullStart, fullStop;
+    cudaEvent_t h2dStart, h2dStop, kernelStart, kernelStop, d2hStart, d2hStop, fullStart, fullStop;
     CUDA_CHECK(cudaEventCreate(&h2dStart));
     CUDA_CHECK(cudaEventCreate(&h2dStop));
     CUDA_CHECK(cudaEventCreate(&kernelStart));
@@ -264,16 +252,13 @@ static BenchmarkResult benchmarkOp(
         // H2D copies: both inputs are re-uploaded every iteration so the
         // measurement includes the real transfer cost.
         CUDA_CHECK(cudaEventRecord(h2dStart));
-        CUDA_CHECK(cudaMemcpy(
-            d_a, x.data(), n * sizeof(float), cudaMemcpyHostToDevice));
+        CUDA_CHECK(cudaMemcpy(d_a, x.data(), n * sizeof(float), cudaMemcpyHostToDevice));
 
         if (op == Op::Add) {
-            CUDA_CHECK(cudaMemcpy(
-                d_b, y.data(), n * sizeof(float), cudaMemcpyHostToDevice));
+            CUDA_CHECK(cudaMemcpy(d_b, y.data(), n * sizeof(float), cudaMemcpyHostToDevice));
         } else if (op == Op::Saxpy) {
             // y is the second operand and the destination.
-            CUDA_CHECK(cudaMemcpy(
-                d_c, y.data(), n * sizeof(float), cudaMemcpyHostToDevice));
+            CUDA_CHECK(cudaMemcpy(d_c, y.data(), n * sizeof(float), cudaMemcpyHostToDevice));
         }
 
         CUDA_CHECK(cudaEventRecord(h2dStop));
@@ -285,9 +270,7 @@ static BenchmarkResult benchmarkOp(
 
         // D2H.
         CUDA_CHECK(cudaEventRecord(d2hStart));
-        CUDA_CHECK(cudaMemcpy(
-            resultHost.data(), d_c, n * sizeof(float),
-            cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaMemcpy(resultHost.data(), d_c, n * sizeof(float), cudaMemcpyDeviceToHost));
         CUDA_CHECK(cudaEventRecord(d2hStop));
 
         CUDA_CHECK(cudaEventRecord(fullStop));
@@ -296,8 +279,7 @@ static BenchmarkResult benchmarkOp(
         if (iter >= kWarmupIterations) {
             Timing t;
             CUDA_CHECK(cudaEventElapsedTime(&t.h2dMs, h2dStart, h2dStop));
-            CUDA_CHECK(
-                cudaEventElapsedTime(&t.kernelMs, kernelStart, kernelStop));
+            CUDA_CHECK(cudaEventElapsedTime(&t.kernelMs, kernelStart, kernelStop));
             CUDA_CHECK(cudaEventElapsedTime(&t.d2hMs, d2hStart, d2hStop));
             CUDA_CHECK(cudaEventElapsedTime(&t.fullMs, fullStart, fullStop));
             timings.push_back(t);
@@ -320,7 +302,7 @@ static BenchmarkResult benchmarkOp(
     }
 
     std::vector<float> h2d, kern, d2h, full;
-    for (const auto& t : timings) {
+    for (const auto &t : timings) {
         h2d.push_back(t.h2dMs);
         kern.push_back(t.kernelMs);
         d2h.push_back(t.d2hMs);
@@ -339,28 +321,24 @@ static BenchmarkResult benchmarkOp(
 // Helpers for the final large-array sanity check
 // ---------------------------------------------------------------------------
 
-static void checkLargeOperation(
-    Op op, AccessMode mode, const std::vector<float>& x,
-    const std::vector<float>& y, const std::vector<float>& ref, float alpha,
-    std::size_t n, int blockSize, float* d_a, float* d_b, float* d_c,
-    std::vector<float>& result) {
+static void checkLargeOperation(Op op, AccessMode mode, const std::vector<float> &x,
+                                const std::vector<float> &y, const std::vector<float> &ref,
+                                float alpha, std::size_t n, int blockSize, float *d_a, float *d_b,
+                                float *d_c, std::vector<float> &result) {
     if (op == Op::Saxpy) {
-        CUDA_CHECK(cudaMemcpy(
-            d_c, y.data(), n * sizeof(float), cudaMemcpyHostToDevice));
+        CUDA_CHECK(cudaMemcpy(d_c, y.data(), n * sizeof(float), cudaMemcpyHostToDevice));
     }
 
     launchVectorOp(op, mode, d_a, d_b, d_c, alpha, n, blockSize);
     CUDA_CHECK_KERNEL();
-    CUDA_CHECK(cudaMemcpy(
-        result.data(), d_c, n * sizeof(float), cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(result.data(), d_c, n * sizeof(float), cudaMemcpyDeviceToHost));
 
     float maxErr;
     std::size_t mismatches;
     compareWithReference(ref, result, maxErr, mismatches);
 
     std::cerr << (op == Op::Add ? "Add" : (op == Op::Saxpy ? "SAXPY" : "ReLU"))
-              << " large check: max error = " << maxErr
-              << ", mismatches = " << mismatches << "\n";
+              << " large check: max error = " << maxErr << ", mismatches = " << mismatches << "\n";
 }
 
 // ---------------------------------------------------------------------------
@@ -371,7 +349,7 @@ static std::string modeName(AccessMode mode) {
     return mode == AccessMode::Coalesced ? "coalesced" : "noncoalesced";
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
     Config cfg = parseArgs(argc, argv);
     readConfigFile(cfg.inputPath, cfg);
 
@@ -381,14 +359,13 @@ int main(int argc, char** argv) {
     cudaDeviceProp prop;
     CUDA_CHECK(cudaGetDeviceProperties(&prop, device));
 
-    std::cerr << "Device: " << prop.name << " (compute " << prop.major << "."
-              << prop.minor << ")\n";
+    std::cerr << "Device: " << prop.name << " (compute " << prop.major << "." << prop.minor
+              << ")\n";
     std::cerr << "Mode: " << modeName(cfg.mode) << "\n";
     std::cerr << "Benchmark size: " << cfg.n << "\n";
 
     std::cerr << "Running validation...\n";
-    std::vector<ValidationResult> validation =
-        runValidation(cfg.mode, cfg.alpha);
+    std::vector<ValidationResult> validation = runValidation(cfg.mode, cfg.alpha);
 
     std::cerr << "Generating inputs...\n";
     std::vector<float> x, y;
@@ -399,26 +376,18 @@ int main(int argc, char** argv) {
 
     if (cfg.blockSize == 0) {
         for (int bs : {64, 128, 256, 512, 1024}) {
+            benchmarks.push_back(benchmarkOp(Op::Add, cfg.mode, x, y, cfg.alpha, bs, cfg.repeats));
             benchmarks.push_back(
-                benchmarkOp(Op::Add, cfg.mode, x, y, cfg.alpha, bs,
-                            cfg.repeats));
-            benchmarks.push_back(
-                benchmarkOp(Op::Saxpy, cfg.mode, x, y, cfg.alpha, bs,
-                            cfg.repeats));
-            benchmarks.push_back(
-                benchmarkOp(Op::Relu, cfg.mode, x, y, cfg.alpha, bs,
-                            cfg.repeats));
+                benchmarkOp(Op::Saxpy, cfg.mode, x, y, cfg.alpha, bs, cfg.repeats));
+            benchmarks.push_back(benchmarkOp(Op::Relu, cfg.mode, x, y, cfg.alpha, bs, cfg.repeats));
         }
     } else {
         benchmarks.push_back(
-            benchmarkOp(Op::Add, cfg.mode, x, y, cfg.alpha, cfg.blockSize,
-                        cfg.repeats));
+            benchmarkOp(Op::Add, cfg.mode, x, y, cfg.alpha, cfg.blockSize, cfg.repeats));
         benchmarks.push_back(
-            benchmarkOp(Op::Saxpy, cfg.mode, x, y, cfg.alpha, cfg.blockSize,
-                        cfg.repeats));
+            benchmarkOp(Op::Saxpy, cfg.mode, x, y, cfg.alpha, cfg.blockSize, cfg.repeats));
         benchmarks.push_back(
-            benchmarkOp(Op::Relu, cfg.mode, x, y, cfg.alpha, cfg.blockSize,
-                        cfg.repeats));
+            benchmarkOp(Op::Relu, cfg.mode, x, y, cfg.alpha, cfg.blockSize, cfg.repeats));
     }
 
     writeReport(cfg, validation, benchmarks);
@@ -433,23 +402,18 @@ int main(int argc, char** argv) {
     CUDA_CHECK(cudaMalloc(&d_a, cfg.n * sizeof(float)));
     CUDA_CHECK(cudaMalloc(&d_c, cfg.n * sizeof(float)));
     CUDA_CHECK(cudaMalloc(&d_b, cfg.n * sizeof(float)));
-    CUDA_CHECK(cudaMemcpy(
-        d_a, x.data(), cfg.n * sizeof(float), cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(
-        d_b, y.data(), cfg.n * sizeof(float), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_a, x.data(), cfg.n * sizeof(float), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_b, y.data(), cfg.n * sizeof(float), cudaMemcpyHostToDevice));
 
     std::vector<float> result(cfg.n);
     int effectiveBlockSize = cfg.blockSize != 0 ? cfg.blockSize : 256;
 
-    checkLargeOperation(
-        Op::Add, cfg.mode, x, y, refAdd, cfg.alpha, cfg.n, effectiveBlockSize,
-        d_a, d_b, d_c, result);
-    checkLargeOperation(
-        Op::Saxpy, cfg.mode, x, y, refSaxpy, cfg.alpha, cfg.n,
-        effectiveBlockSize, d_a, d_b, d_c, result);
-    checkLargeOperation(
-        Op::Relu, cfg.mode, x, y, refRelu, cfg.alpha, cfg.n, effectiveBlockSize,
-        d_a, nullptr, d_c, result);
+    checkLargeOperation(Op::Add, cfg.mode, x, y, refAdd, cfg.alpha, cfg.n, effectiveBlockSize, d_a,
+                        d_b, d_c, result);
+    checkLargeOperation(Op::Saxpy, cfg.mode, x, y, refSaxpy, cfg.alpha, cfg.n, effectiveBlockSize,
+                        d_a, d_b, d_c, result);
+    checkLargeOperation(Op::Relu, cfg.mode, x, y, refRelu, cfg.alpha, cfg.n, effectiveBlockSize,
+                        d_a, nullptr, d_c, result);
 
     CUDA_CHECK(cudaFree(d_a));
     CUDA_CHECK(cudaFree(d_b));
@@ -458,6 +422,6 @@ int main(int argc, char** argv) {
     return EXIT_SUCCESS;
 }
 
-}  // namespace lab1
+} // namespace lab1
 
-int main(int argc, char** argv) { return lab1::main(argc, argv); }
+int main(int argc, char **argv) { return lab1::main(argc, argv); }
