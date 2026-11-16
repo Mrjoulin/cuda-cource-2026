@@ -1,5 +1,4 @@
 # Lab 1: Vector Operations and Activations — Векторные операции и активации
-### Выполнил: Иванов Матвей (Mrjoulin)
 
 ## Описание
 
