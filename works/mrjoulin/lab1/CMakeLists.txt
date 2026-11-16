@@ -5,7 +5,8 @@ add_executable(submission src/main.cu src/kernels.cu src/config.cpp src/report.c
 
 target_include_directories(submission PRIVATE include)
 
-set_target_properties(submission PROPERTIES
+set_target_properties(
+    submission PROPERTIES
     CXX_STANDARD 17
     CUDA_STANDARD 17
     CUDA_STANDARD_REQUIRED ON
