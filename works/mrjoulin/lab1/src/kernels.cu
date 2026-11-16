@@ -104,6 +104,7 @@ void launchVectorOp(Op op, AccessMode mode, const float *d_a, const float *d_b, 
         grid = static_cast<int>((totalThreads + block - 1) / block);
     }
 
+    // Run kernel
     if (mode == AccessMode::Coalesced) {
         switch (op) {
         case Op::Add:
