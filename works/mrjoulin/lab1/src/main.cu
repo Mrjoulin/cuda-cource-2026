@@ -390,6 +390,7 @@ int main(int argc, char **argv) {
             benchmarkOp(Op::Relu, cfg.mode, x, y, cfg.alpha, cfg.blockSize, cfg.repeats));
     }
 
+    // Write report to txt file
     writeReport(cfg, validation, benchmarks);
 
     std::cerr << "Checking large-result correctness...\n";
