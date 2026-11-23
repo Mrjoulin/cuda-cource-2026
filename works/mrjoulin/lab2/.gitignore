@@ -1,0 +1,7 @@
+build/
+results/
+*.o
+*.out
+submission
+*.nsys-rep
+*.ncu-rep
