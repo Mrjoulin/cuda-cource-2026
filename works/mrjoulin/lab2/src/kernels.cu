@@ -18,12 +18,7 @@ constexpr int kBankBufferSize = 32 * 33;
 
 int ceilDiv(int value, int divisor) { return (value + divisor - 1) / divisor; }
 
-// ---------------------------------------------------------------------------
 // Naive kernel
-// ---------------------------------------------------------------------------
-
-// Thread (row, col) walks one row of A and one column of B. Threads of a warp share the row and
-// have consecutive columns, so B reads coalesce and A reads are a broadcast.
 __global__ void matmulNaive(const float *a, const float *b, float *c, int m, int k, int n) {
     const int row = blockIdx.y * blockDim.y + threadIdx.y;
     const int col = blockIdx.x * blockDim.x + threadIdx.x;
@@ -39,14 +34,7 @@ __global__ void matmulNaive(const float *a, const float *b, float *c, int m, int
     c[static_cast<std::size_t>(row) * n + col] = acc;
 }
 
-// ---------------------------------------------------------------------------
 // Tiled kernel
-// ---------------------------------------------------------------------------
-
-// A block computes a Tile x Tile piece of C. For every step along K it loads one tile of A and
-// one tile of B into shared memory, so each global element is read once per block instead of
-// once per thread. Tiles that stick out of the matrix are filled with zeros, which keeps the
-// inner product correct for any m, k and n.
 template <int Tile, int Pad>
 __global__ void matmulTiled(const float *a, const float *b, float *c, int m, int k, int n) {
     __shared__ float tileA[Tile][Tile + Pad];
@@ -78,8 +66,8 @@ __global__ void matmulTiled(const float *a, const float *b, float *c, int m, int
         __syncthreads();
     }
 
-    // Threads outside C still took part in the loads and barriers above. Only the store is
-    // guarded.
+    // Threads outside C still took part in the loads and barriers above.
+    // Only the store is guarded.
     if (row < m && col < n) {
         c[static_cast<std::size_t>(row) * n + col] = acc;
     }
@@ -100,13 +88,7 @@ template <int Tile, int Pad> KernelInfo tiledInfoImpl() {
     return {attr.numRegs, attr.sharedSizeBytes};
 }
 
-// ---------------------------------------------------------------------------
 // Bank conflict test
-// ---------------------------------------------------------------------------
-
-// Lane l reads word l * stride + c. Its bank is (l * stride + c) mod 32, so the number of lanes
-// that share a bank is gcd(stride, 32). Stride 33 breaks the pattern and has no conflicts.
-// The pointer is volatile so the compiler cannot hoist the loads out of the loop.
 __global__ void bankTest(float *out, int stride, int iterations) {
     __shared__ float buf[kBankBufferSize];
 
