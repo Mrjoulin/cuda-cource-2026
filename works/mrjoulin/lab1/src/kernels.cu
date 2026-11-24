@@ -1,5 +1,12 @@
-#include <cuda_runtime.h>
+/**
+ * @file kernels.cu
+ * @brief Implementation of add / SAXPY / ReLU kernels in two access patterns.
+ */
+
 #include "kernels.h"
+
+// CUDA runtime and standard library headers.
+#include <cuda_runtime.h>
 
 #include <algorithm>
 

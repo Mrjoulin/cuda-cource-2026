@@ -1,10 +1,15 @@
+/**
+ * @file config.cpp
+ * @brief Implementation of command-line argument parsing.
+ */
+
 #include "config.h"
-#include "kernels.h"
 
 #include <cstdlib>
 #include <iostream>
 #include <string>
 
+#include "kernels.h"
 
 namespace lab1 {
 
