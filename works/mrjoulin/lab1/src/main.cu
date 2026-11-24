@@ -1,13 +1,5 @@
-/**
- * @file main.cu
- * @brief Lab 1 submission: vector add, SAXPY and ReLU with coalesced and
- *        noncoalesced global-memory access.
- *
- * The program reads vectors from --input ("N alpha" followed by N pairs "x y"),
- * runs the three operations on the GPU in the access mode chosen with --mode,
- * checks them against CPU references and writes "add saxpy relu" lines to
- * --output. Timing measurements are printed to stdout.
- */
+#include "kernels.h"
+#include "config.h"
 
 #include <cuda_runtime.h>
 
@@ -26,9 +18,6 @@
 #include <string>
 #include <string_view>
 #include <vector>
-
-#include "config.h"
-#include "kernels.h"
 
 namespace lab1 {
 namespace {

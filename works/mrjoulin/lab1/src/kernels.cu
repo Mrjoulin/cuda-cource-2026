@@ -1,13 +1,7 @@
-/**
- * @file kernels.cu
- * @brief Implementation of add / SAXPY / ReLU kernels in two access patterns.
- */
-
+#include "kernels.h"
 #include <cuda_runtime.h>
 
 #include <algorithm>
-
-#include "kernels.h"
 
 namespace lab1 {
 
