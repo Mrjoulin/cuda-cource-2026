@@ -1,5 +1,5 @@
-#include "kernels.h"
 #include <cuda_runtime.h>
+#include "kernels.h"
 
 #include <algorithm>
 

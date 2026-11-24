@@ -1,5 +1,5 @@
-#include "kernels.h"
 #include "config.h"
+#include "kernels.h"
 
 #include <cstdlib>
 #include <iostream>

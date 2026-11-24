@@ -1,7 +1,6 @@
-#include "kernels.h"
-#include "config.h"
-
 #include <cuda_runtime.h>
+#include "config.h"
+#include "kernels.h"
 
 #include <algorithm>
 #include <charconv>
