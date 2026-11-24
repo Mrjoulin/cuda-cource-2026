@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(lab1 LANGUAGES CXX CUDA)
 
-add_executable(submission src/main.cu src/kernels.cu src/config.cpp src/report.cpp)
+add_executable(submission src/main.cu src/kernels.cu src/config.cpp)
 
 target_include_directories(submission PRIVATE include)
 

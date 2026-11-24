@@ -1,167 +1,91 @@
 /**
  * @file config.cpp
- * @brief Implementation of command-line parsing and config file loading.
+ * @brief Implementation of command-line argument parsing.
  */
 
 #include "config.h"
 
 #include <cstdlib>
-#include <fstream>
 #include <iostream>
 #include <string>
 
 namespace lab1 {
 
-namespace {
-
-std::string trim(const std::string &s) {
-    size_t first = s.find_first_not_of(" \t\r\n");
-    if (first == std::string::npos) {
-        return "";
-    }
-    size_t last = s.find_last_not_of(" \t\r\n");
-    return s.substr(first, last - first + 1);
+void printUsage(const char* program) {
+  std::cout
+      << "Usage: " << program << " --input PATH --output PATH [--mode MODE]\n"
+      << "\n"
+      << "Runs vector Add, SAXPY (y = alpha * x + y) and ReLU (y = max(0, x)) "
+         "on the GPU\n"
+      << "in the selected global-memory access mode (default: coalesced).\n"
+      << "\n"
+      << "Arguments:\n"
+      << "  --input PATH    input file: first line \"N alpha\", then N lines "
+         "\"x y\"\n"
+      << "  --output PATH   result file: one line \"x+y  alpha*x+y  relu(x)\" "
+         "per pair\n"
+      << "  --mode MODE     coalesced or noncoalesced (optional, default: "
+         "coalesced)\n"
+      << "  --help          show this help and exit\n"
+      << "\n"
+      << "Exit codes: 0 - success, 1 - runtime error, 2 - invalid arguments or "
+         "input.\n";
 }
 
-AccessMode parseMode(const std::string &s) {
-    if (s == "coalesced") {
-        return AccessMode::Coalesced;
+Config parseArgs(int argc, char** argv) {
+  Config cfg;
+  bool hasInput = false;
+  bool hasOutput = false;
+
+  for (int i = 1; i < argc; ++i) {
+    const std::string arg = argv[i];
+
+    if (arg == "--help" || arg == "-h") {
+      printUsage(argv[0]);
+      std::exit(kExitOk);
     }
-    if (s == "noncoalesced") {
-        return AccessMode::Noncoalesced;
+
+    if (arg != "--input" && arg != "--output" && arg != "--mode") {
+      std::cerr << "Unknown argument: " << arg << "\n";
+      printUsage(argv[0]);
+      std::exit(kExitUsageError);
     }
-    std::cerr << "Unknown mode: " << s << "\n";
-    std::exit(EXIT_FAILURE);
+
+    if (i + 1 >= argc) {
+      std::cerr << "Missing value for " << arg << "\n";
+      std::exit(kExitUsageError);
+    }
+
+    const std::string value = argv[++i];
+    if (value.empty() || value.rfind("--", 0) == 0) {
+      std::cerr << "Missing value for " << arg << "\n";
+      std::exit(kExitUsageError);
+    }
+
+    if (arg == "--input") {
+      cfg.inputPath = value;
+      hasInput = true;
+    } else if (arg == "--output") {
+      cfg.outputPath = value;
+      hasOutput = true;
+    } else if (value == "coalesced") {
+      cfg.mode = AccessMode::Coalesced;
+    } else if (value == "noncoalesced") {
+      cfg.mode = AccessMode::Noncoalesced;
+    } else {
+      std::cerr << "Invalid --mode value: " << value
+                << " (expected coalesced or "
+                << "noncoalesced)\n";
+      std::exit(kExitUsageError);
+    }
+  }
+
+  if (!hasInput || !hasOutput) {
+    std::cerr << "Both --input and --output are required. See --help.\n";
+    std::exit(kExitUsageError);
+  }
+
+  return cfg;
 }
 
-} // namespace
-
-void printUsage(const char *program) {
-    std::cout << "Usage: " << program << " --input <config.txt> --output <dir> [--mode <mode>]\n"
-              << "\n"
-              << "Required:\n"
-              << "  --input <path>   Text file with key=value settings\n"
-              << "  --output <dir>   Directory for the report\n"
-              << "\n"
-              << "Optional:\n"
-              << "  --mode <mode>    coalesced (default) or noncoalesced\n"
-              << "\n"
-              << "Config keys (one per line):\n"
-              << "  n=<size>         Number of elements for the benchmark\n"
-              << "  alpha=<float>    SAXPY coefficient\n"
-              << "  seed=<uint>      RNG seed for reproducible inputs\n"
-              << "  block_size=<int> Threads per block (0 sweeps 64..1024)\n"
-              << "  repeats=<int>    Repetitions after warmup\n";
-}
-
-Config parseArgs(int argc, char **argv) {
-    Config cfg;
-    bool hasInput = false;
-    bool hasOutput = false;
-
-    for (int i = 1; i < argc; ++i) {
-        std::string arg = argv[i];
-
-        if (arg == "--help" || arg == "-h") {
-            printUsage(argv[0]);
-            std::exit(EXIT_SUCCESS);
-        }
-
-        if (arg == "--input") {
-            if (i + 1 >= argc) {
-                std::cerr << "Missing value for --input\n";
-                std::exit(EXIT_FAILURE);
-            }
-            cfg.inputPath = argv[++i];
-            hasInput = true;
-            continue;
-        }
-
-        if (arg == "--output") {
-            if (i + 1 >= argc) {
-                std::cerr << "Missing value for --output\n";
-                std::exit(EXIT_FAILURE);
-            }
-            cfg.outputPath = argv[++i];
-            hasOutput = true;
-            continue;
-        }
-
-        if (arg == "--mode") {
-            if (i + 1 >= argc) {
-                std::cerr << "Missing value for --mode\n";
-                std::exit(EXIT_FAILURE);
-            }
-            cfg.mode = parseMode(argv[++i]);
-            continue;
-        }
-
-        std::cerr << "Unknown argument: " << arg << "\n";
-        printUsage(argv[0]);
-        std::exit(EXIT_FAILURE);
-    }
-
-    if (!hasInput || !hasOutput) {
-        std::cerr << "Both --input and --output are required.\n";
-        printUsage(argv[0]);
-        std::exit(EXIT_FAILURE);
-    }
-
-    return cfg;
-}
-
-void readConfigFile(const std::string &path, Config &cfg) {
-    std::ifstream file(path);
-    if (!file) {
-        std::cerr << "Cannot open input config: " << path << "\n";
-        std::exit(EXIT_FAILURE);
-    }
-
-    std::string line;
-    int lineno = 0;
-
-    while (std::getline(file, line)) {
-        ++lineno;
-        line = trim(line);
-
-        if (line.empty() || line[0] == '#') {
-            continue;
-        }
-
-        size_t eq = line.find('=');
-        if (eq == std::string::npos) {
-            std::cerr << "Invalid config line " << lineno << ": " << line << "\n";
-            std::exit(EXIT_FAILURE);
-        }
-
-        std::string key = trim(line.substr(0, eq));
-        std::string value = trim(line.substr(eq + 1));
-
-        try {
-            if (key == "n") {
-                cfg.n = static_cast<std::size_t>(std::stoull(value));
-            } else if (key == "alpha") {
-                cfg.alpha = std::stof(value);
-            } else if (key == "seed") {
-                cfg.seed = static_cast<unsigned>(std::stoul(value));
-            } else if (key == "block_size") {
-                cfg.blockSize = std::stoi(value);
-            } else if (key == "repeats") {
-                cfg.repeats = std::stoi(value);
-            } else {
-                std::cerr << "Unknown config key: " << key << "\n";
-                std::exit(EXIT_FAILURE);
-            }
-        } catch (const std::exception &e) {
-            std::cerr << "Bad value for " << key << " at line " << lineno << ": " << e.what()
-                      << "\n";
-            std::exit(EXIT_FAILURE);
-        }
-    }
-
-    if (cfg.repeats < 1) {
-        cfg.repeats = 1;
-    }
-}
-
-} // namespace lab1
+}  // namespace lab1
