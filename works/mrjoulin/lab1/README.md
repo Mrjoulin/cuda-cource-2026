@@ -67,14 +67,14 @@ cmake --build build --target submission
 ## Реализация
 
 - `include/kernels.h` — объявления операций и режимов доступа.
-- `src/kernels.cu` — шесть ядер (coalesced/noncoalesced × add/saxpy/relu) и общий запускатель `launchVectorOp`.
+- `src/kernels.cu` — шесть ядер (coalesced/noncoalesced × add/saxpy/relu) и общий запускатель `LaunchVectorOp`.
 - `include/config.h` / `src/config.cpp` — разбор аргументов командной строки и справка `--help`.
 - `src/main.cu` — чтение входа, валидация на малых размерах, проверка входных данных, бенчмарк с CUDA events, запись результата.
 
 Распределение элементов по тредам:
 
 - **coalesced:** `idx = blockIdx.x * blockDim.x + threadIdx.x`, шаг `gridDim.x * blockDim.x`, проверка `idx < n`;
-- **noncoalesced:** каждый тред получает фиксированный чанк `kChunk = 64` элементов, начиная с `tid * kChunk`, граница обрезается до `n`. Размер сетки выбирается как `(ceil(n / kChunk) + block - 1) / block`.
+- **noncoalesced:** каждый тред получает фиксированный чанк `chunk_size = 64` элементов, начиная с `tid * chunk_size`, граница обрезается до `n`. Размер сетки выбирается как `(ceil(n / chunk_size) + block - 1) / block`.
 
 SAXPY выполняется in-place: буфер-приёмник предварительно заполняется исходным `y`, поэтому эталон и ядро получают одинаковые входы. Границы массива проверяются в обоих режимах; пустой вход (`N = 0`) отклоняется с сообщением и кодом `2`. Все вызовы CUDA обёрнуты макросами `CUDA_CHECK` / `CUDA_CHECK_KERNEL`, память освобождается.
 

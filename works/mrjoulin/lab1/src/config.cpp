@@ -11,7 +11,41 @@
 
 namespace lab1 {
 
-void printUsage(const char* program) {
+namespace {
+
+// Returns the value that follows the option at argv[*index] and advances the
+// index past it. Exits when the value is missing.
+std::string ReadOptionValue(int argc, char** argv, int* index) {
+  const std::string arg = argv[*index];
+
+  if (*index + 1 >= argc) {
+    std::cerr << "Missing value for " << arg << "\n";
+    std::exit(exit_usage_error);
+  }
+
+  const std::string value = argv[++*index];
+  if (value.empty() || value.rfind("--", 0) == 0) {
+    std::cerr << "Missing value for " << arg << "\n";
+    std::exit(exit_usage_error);
+  }
+  return value;
+}
+
+AccessMode ParseMode(const std::string& value) {
+  if (value == "coalesced") {
+    return AccessMode::Coalesced;
+  }
+  if (value == "noncoalesced") {
+    return AccessMode::Noncoalesced;
+  }
+  std::cerr << "Invalid --mode value: " << value << " (expected coalesced or "
+            << "noncoalesced)\n";
+  std::exit(exit_usage_error);
+}
+
+}  // namespace
+
+void PrintUsage(const char* program) {
   std::cout
       << "Usage: " << program << " --input PATH --output PATH [--mode MODE]\n"
       << "\n"
@@ -32,57 +66,40 @@ void printUsage(const char* program) {
          "input.\n";
 }
 
-Config parseArgs(int argc, char** argv) {
+Config ParseArgs(int argc, char** argv) {
   Config cfg;
-  bool hasInput = false;
-  bool hasOutput = false;
+  bool has_input = false;
+  bool has_output = false;
 
   for (int i = 1; i < argc; ++i) {
     const std::string arg = argv[i];
 
     if (arg == "--help" || arg == "-h") {
-      printUsage(argv[0]);
-      std::exit(kExitOk);
+      PrintUsage(argv[0]);
+      std::exit(exit_ok);
     }
 
     if (arg != "--input" && arg != "--output" && arg != "--mode") {
       std::cerr << "Unknown argument: " << arg << "\n";
-      printUsage(argv[0]);
-      std::exit(kExitUsageError);
+      PrintUsage(argv[0]);
+      std::exit(exit_usage_error);
     }
 
-    if (i + 1 >= argc) {
-      std::cerr << "Missing value for " << arg << "\n";
-      std::exit(kExitUsageError);
-    }
-
-    const std::string value = argv[++i];
-    if (value.empty() || value.rfind("--", 0) == 0) {
-      std::cerr << "Missing value for " << arg << "\n";
-      std::exit(kExitUsageError);
-    }
-
+    const std::string value = ReadOptionValue(argc, argv, &i);
     if (arg == "--input") {
-      cfg.inputPath = value;
-      hasInput = true;
+      cfg.input_path = value;
+      has_input = true;
     } else if (arg == "--output") {
-      cfg.outputPath = value;
-      hasOutput = true;
-    } else if (value == "coalesced") {
-      cfg.mode = AccessMode::Coalesced;
-    } else if (value == "noncoalesced") {
-      cfg.mode = AccessMode::Noncoalesced;
+      cfg.output_path = value;
+      has_output = true;
     } else {
-      std::cerr << "Invalid --mode value: " << value
-                << " (expected coalesced or "
-                << "noncoalesced)\n";
-      std::exit(kExitUsageError);
+      cfg.mode = ParseMode(value);
     }
   }
 
-  if (!hasInput || !hasOutput) {
+  if (!has_input || !has_output) {
     std::cerr << "Both --input and --output are required. See --help.\n";
-    std::exit(kExitUsageError);
+    std::exit(exit_usage_error);
   }
 
   return cfg;

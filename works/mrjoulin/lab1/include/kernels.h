@@ -12,12 +12,6 @@
 
 #include <cstddef>
 
-#ifdef __CUDACC__
-#include <cuda_runtime.h>
-#else
-using cudaStream_t = void*;
-#endif
-
 namespace lab1 {
 
 /** Vector operation supported by this submission. */
@@ -36,9 +30,8 @@ enum class AccessMode {
 /**
  * @brief Launch one of the vector kernels.
  */
-void launchVectorOp(Op op, AccessMode mode, const float* d_a, const float* d_b,
-                    float* d_c, float alpha, std::size_t n, int blockSize,
-                    cudaStream_t stream = 0);
+void LaunchVectorOp(Op op, AccessMode mode, const float* d_a, const float* d_b,
+                    float* d_c, float alpha, std::size_t n, int block_size);
 
 }  // namespace lab1
 
