@@ -9,6 +9,8 @@
 #include <iostream>
 #include <string>
 
+#include "kernels.h"
+
 namespace lab1 {
 
 namespace {
